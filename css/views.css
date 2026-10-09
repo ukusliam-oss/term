@@ -417,3 +417,29 @@ button.row:hover .row-title span:last-child, .row-main:hover .row-title span:las
 @media (max-width: 734px) { .tt-title { font-size: 24px; line-height: 1.16667; } }
 .view-alt .pl-filters { margin-top: 28px; }
 .due-fields { margin-top: 14px; }
+
+/* ---------- v3.1 hero object: the week letter, with room to breathe ---------- */
+
+.hero { padding-bottom: 56px; }
+.hero-stage {
+  height: clamp(240px, calc(100svh - 470px), 420px);
+  margin: 56px auto 0;
+  max-width: 900px;
+  cursor: grab;
+  touch-action: pan-y;
+  outline: none;
+  background: radial-gradient(42% 52% at 50% 56%, color-mix(in srgb, var(--glow, #0071e3) 30%, transparent), transparent 72%);
+  transition: background 1s var(--ease-ln);
+}
+.hero-stage:active { cursor: grabbing; }
+.hero-stage:focus-visible { outline: 2px solid var(--dark-link); outline-offset: 6px; border-radius: 18px; }
+.hero-caption { max-width: 620px; margin: 20px auto 0; padding: 0 var(--gutter); text-align: center; }
+.hero-cap-week { font: 400 17px/1.47059 var(--font-text); letter-spacing: -0.022em; color: var(--dark-text-2); }
+.hero-cap-strong { color: var(--dark-text); font-weight: 600; }
+.hero-cap-hint { font: 400 14px/1.42859 var(--font-text); letter-spacing: -0.016em; color: #6e6e73; margin-top: 4px; }
+.hero-cap-hint .more { font: inherit; }
+@media (max-width: 734px) {
+  .hero { padding-bottom: 40px; }
+  .hero-stage { height: clamp(220px, calc(100svh - 520px), 320px); margin-top: 36px; }
+  .hero-cap-week { font-size: 15px; }
+}

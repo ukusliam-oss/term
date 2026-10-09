@@ -281,7 +281,10 @@ export function createTimetable(app) {
     id: 'timetable', el: f.el,
     update: () => render(0),
     minute: () => render(0),
-    setOptions(o) { if (o.edit) setEdit(true); },
+    setOptions(o) {
+      if (o.edit) setEdit(true);
+      if (o.monday) { st.monday = M.startOfWeek(o.monday); st.day = M.ymd(st.monday) === M.ymd(M.startOfWeek(M.today())) ? defaultDay() : 1; }
+    },
     onKey(e) {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const d = e.key === 'ArrowRight' ? 1 : -1;

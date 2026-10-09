@@ -15,8 +15,11 @@ export function createHome(app) {
   const title = h('h1.hero-title');
   const sub = h('p.hero-sub');
   const ctas = h('div.button-group.hero-ctas');
-  const stage = h('div.hero-stage', { 'aria-hidden': 'true' }, h('span.hero-fallback'));
-  const hero = h('section.hero.on-dark', null, h('div.hero-copy', null, eyebrow, title, sub, ctas), stage);
+  const stage = h('div.hero-stage', { role: 'button', tabindex: '0', 'aria-label': 'This week’s letter. Drag to see next week; press to open the timetable.' }, h('span.hero-fallback'));
+  const capWeek = h('p.hero-cap-week');
+  const capHint = h('p.hero-cap-hint');
+  const caption = h('div.hero-caption', null, capWeek, capHint);
+  const hero = h('section.hero.on-dark', null, h('div.hero-copy', null, eyebrow, title, sub, ctas), stage, caption);
   const notice = h('div.wrap.home-notice');
   const todayHead = h('div.today-head');
   const lessons = h('article.panel.panel-lessons');
@@ -35,6 +38,7 @@ export function createHome(app) {
   let three = null;
   let threeLoading = false;
   let scene = null;
+  let weekIdx = 0;
   let live = null;
   let liveKey = '';
 
@@ -42,16 +46,43 @@ export function createHome(app) {
     if (three || threeLoading) return;
     threeLoading = true;
     import('../hero3d.js').then(({ createHero3D }) => {
-      three = createHero3D(stage);
-      stage.classList.add('is-live');
+      three = createHero3D(stage, {
+        onFlip: (i) => { weekIdx = i; renderCaption(); },
+        onTap: (i) => app.go('timetable', { monday: M.addDays(heroMonday(), 7 * i) }),
+      });
       if (scene) three.set(scene);
     }).catch((e) => { console.warn('[term] 3D unavailable', e); stage.classList.add('is-fallback'); });
   }
-  function setScene(s) {
-    scene = s;
-    stage.querySelector('.hero-fallback').textContent = s.letter;
-    stage.style.setProperty('--c', s.color);
-    three?.set(s);
+  // The hero object shows this week's letter; turned over, next week's.
+  // …for the week the headline is about: today's, or the next school day's once today is done.
+  function heroMonday() {
+    const now = new Date();
+    const day = M.isSchoolDay(now) && M.status(now).state !== 'after' ? M.today() : M.nextSchoolDay(now) || M.today();
+    return M.startOfWeek(day);
+  }
+  function setScene(tint) {
+    const mon = heroMonday();
+    const letters = [M.weekLetter(mon), M.weekLetter(M.addDays(mon, 7))];
+    scene = { letters, tint };
+    stage.querySelector('.hero-fallback').textContent = letters[weekIdx];
+    stage.style.setProperty('--glow', tint);
+    three?.set(scene);
+    renderCaption();
+  }
+  function renderCaption() {
+    if (!S.timetable) { fill(capWeek); fill(capHint); return; }
+    const mon = M.addDays(heroMonday(), 7 * weekIdx);
+    const fri = M.addDays(mon, 4);
+    const L = M.weekLetter(mon);
+    const due = M.allItems().filter((i) => !M.isDone(i) && i.due && i.due >= M.ymd(mon) && i.due <= M.ymd(fri)).length;
+    const off = Math.round(M.daysBetween(M.startOfWeek(M.today()), mon) / 7);
+    const which = off === 0 ? 'This week' : off === 1 ? 'Next week' : 'The week after';
+    fill(capWeek,
+      h('span.hero-cap-strong', { text: `${which} is Week ${L}.` }),
+      ` ${M.fmtRange(mon, fri)} · ${due ? `${due} due` : 'nothing due yet'}.`);
+    fill(capHint,
+      h('span', { text: weekIdx ? 'Drag it back, or tap it for that week’s timetable. ' : 'Drag the letter to see the week after, or tap it for the timetable. ' }),
+      weekIdx ? null : h('button.more', { type: 'button', onclick: () => app.openWeekPicker() }, h('span', { text: `Not Week ${L}?` }), icon('chev', 12)));
   }
 
   function update() {
@@ -77,7 +108,7 @@ export function createHome(app) {
       sub.textContent = S.ready ? 'Your timetable, homework and tests in one place. Bring in your timetable to begin.' : 'Loading your planner…';
       fill(ctas, S.ready ? btn('Import timetable file', () => fileInput.click(), { size: 'elevated' }) : null,
         S.ready ? btn('Start from scratch', () => app.go('timetable'), { size: 'elevated', variant: 'secondary' }) : null);
-      setScene({ letter: 'A', color: '#0071e3', label: 'WELCOME', title: 'Term', detail: 'Timetable · Planner · School' });
+      setScene('#0071e3');
       return;
     }
 
@@ -89,7 +120,7 @@ export function createHome(app) {
       title.textContent = c.subject.name;
       sub.textContent = `${c.room ? `${c.room}, ` : ''}until ${c.period.end}. ${mins()} minutes left.`;
       fill(ctas, btn('View lesson', (e) => app.openLesson(c, e.currentTarget), { size: 'elevated' }), homeworkBtn(c.subjectId));
-      setScene({ letter: c.letter, color: hex(c.subject), label: `NOW · ${c.period.label.toUpperCase()}`, title: c.subject.name, detail: `${c.room || ''}${c.room ? ' · ' : ''}until ${c.period.end}` });
+      setScene(hex(c.subject));
       live = () => { sub.textContent = `${c.room ? `${c.room}, ` : ''}until ${c.period.end}. ${mins()} minute${mins() === 1 ? '' : 's'} left.`; };
       return;
     }
@@ -113,7 +144,7 @@ export function createHome(app) {
       sameDay ? btn('View lesson', (e) => app.openLesson(n, e.currentTarget), { size: 'elevated' })
         : btn(`${M.DAY_LONG[M.parseYMD(n.date).getDay()]}’s lessons`, (e) => app.openDay(M.parseYMD(n.date), e.currentTarget), { size: 'elevated' }),
       homeworkBtn(n.subjectId));
-    setScene({ letter: n.letter, color: hex(n.subject), label: `${sameDay ? 'NEXT' : M.DAY_SHORT[M.parseYMD(n.date).getDay()].toUpperCase()} · ${M.fromMin(n.start)}`, title: n.subject.name, detail: [n.room, n.period.label].filter(Boolean).join(' · ') });
+    setScene(hex(n.subject));
   }
 
   function homeworkBtn(subjectId) {

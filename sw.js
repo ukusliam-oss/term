@@ -1,6 +1,6 @@
 // Offline app shell. Same-origin files are served from cache and refreshed in the background;
 // the sync API (Supabase, another origin) always goes to the network. Bump VERSION on deploy.
-const VERSION = 'term-v3.0.1';
+const VERSION = 'term-v3.1.0';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'css/tokens.css', 'css/base.css', 'css/components.css', 'css/views.css',
@@ -9,7 +9,7 @@ const SHELL = [
   'js/ui/dom.js', 'js/ui/kit.js', 'js/ui/segment.js', 'js/ui/tabs.js', 'js/ui/search.js', 'js/ui/sheet.js', 'js/ui/toast.js',
   'js/views/home.js', 'js/views/timetable.js', 'js/views/planner.js', 'js/views/school.js', 'js/views/settings.js',
   'js/views/editor.js', 'js/views/sheets.js', 'js/views/focus.js', 'js/views/frame.js',
-  'vendor/three/three.module.min.js', 'vendor/three/three.core.min.js', 'vendor/three/addons/RoundedBoxGeometry.js', 'vendor/supabase.js',
+  'vendor/three/three.module.min.js', 'vendor/three/three.core.min.js', 'vendor/three/addons/FontLoader.js', 'vendor/three/addons/TextGeometry.js', 'vendor/three/fonts/helvetiker_bold.typeface.json', 'vendor/supabase.js',
   'icons/icon-192.png', 'icons/apple-touch-icon.png',
 ];
 
