@@ -52,12 +52,12 @@ export function openModal({ eyebrow, title, lede, build, footer, size = 'lg', on
     setFooter: (...nodes) => { fill(foot, ...nodes.filter(Boolean)); foot.hidden = !foot.children.length; },
     close,
   };
-  build?.(body, ctl);
+  const mm = motion(modal);
+  const ms = motion(scrim);
+  try { build?.(body, ctl); } catch (e) { wrap.remove(); throw e; }
   stack.push(ctl);
   lock();
 
-  const mm = motion(modal);
-  const ms = motion(scrim);
   ms.set({ opacity: 0 }).to({ opacity: 1 }, springs.smooth);
   if (phone()) mm.set({ y: window.innerHeight }).to({ y: 0 }, springs.sheet);
   else mm.set({ y: 48, opacity: 0, scale: 0.98 }).to({ y: 0, opacity: 1, scale: 1 }, springs.snappy);

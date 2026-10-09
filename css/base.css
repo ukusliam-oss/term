@@ -103,50 +103,37 @@ option { color: #1d1d1f; }
   position: fixed; top: 0; bottom: 0; left: 0; z-index: 40;
   width: var(--sidebar-w);
   display: flex; flex-direction: column;
-  padding: 22px 16px 18px;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 52px 16px 22px;
 }
-.sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 12px 0; height: 32px; font: 600 15px/1 var(--font-text); letter-spacing: -0.01em; color: rgba(255, 255, 255, 0.92); }
-.sb-mark { width: 22px; height: 22px; border-radius: 6px; background: url(../icons/icon-192.png) center / cover; box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2); }
-.sb-week { margin-left: auto; cursor: pointer; padding: 3px 8px; border-radius: 980px; background: rgba(255, 255, 255, 0.14); font: 600 11px/1.2 var(--font-text); letter-spacing: 0.02em; color: #fff; }
-.sb-search {
-  display: flex; align-items: center; gap: 10px;
-  margin: 18px 0 30px; height: 36px; padding: 0 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  font: 400 14px/1 var(--font-text); color: rgba(255, 255, 255, 0.62);
-  transition: background-color 0.2s;
+/* CleanMyMac's divider: a hairline that fades out toward both ends */
+.sidebar::after {
+  content: ""; position: absolute; top: 72px; bottom: 120px; right: 0; width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.12) 18%, rgba(255, 255, 255, 0.12) 82%, transparent);
 }
-.sb-search:hover { background: rgba(255, 255, 255, 0.12); }
-.sb-search .ico { width: 15px; height: 15px; stroke-width: 1.8; }
-.sb-search kbd { margin-left: auto; border: 0; padding: 0; color: rgba(255, 255, 255, 0.45); font-size: 12px; }
-.sb-list { display: flex; flex-direction: column; gap: 10px; }
+.sb-list { display: flex; flex-direction: column; gap: 12px; }
 .sb-item {
   position: relative; z-index: 1;
-  display: flex; align-items: center; gap: 15px;
-  height: 56px; padding: 0 16px;
-  border-radius: 14px;
-  font: 500 16px/1 var(--font-text); letter-spacing: -0.012em;
+  display: flex; align-items: center; gap: 18px;
+  height: 50px; padding: 0 20px;
+  border-radius: 13px;
+  font: 500 15px/1 var(--font-text); letter-spacing: -0.01em;
   color: #fff;
   transition: background-color 0.25s var(--ease-nav), transform 0.45s var(--spring-bouncy);
 }
 .sb-item:hover { background: rgba(255, 255, 255, 0.06); }
 .sb-item[aria-current="page"]:hover { background: none; }
 .sb-item:active { transform: scale(0.97); transition-duration: 0.12s; }
-.sb-item .sb-icon { transition: transform 0.5s var(--spring-bouncy); }
-.sb-item:hover .sb-icon { transform: scale(1.1) rotate(-4deg); }
-/* the selection slides between rows on a spring, like CleanMyMac's sidebar highlight */
+/* the selection: CleanMyMac's faint white pill with a light top edge, sliding on a spring */
 .sb-sel {
   position: absolute; left: 16px; right: 16px; top: 0; z-index: 0;
-  height: 56px; border-radius: 14px;
-  background: rgba(255, 255, 255, 0.11);
-  box-shadow: var(--glass-edge), 0 6px 18px rgba(0, 0, 0, 0.08);
+  height: 50px; border-radius: 13px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   transition: transform 0.6s var(--spring-snappy), opacity 0.3s;
   pointer-events: none;
 }
-.sb-icon { position: relative; width: 32px; height: 32px; flex: none; display: grid; place-items: center; }
-.sb-img { width: 32px; height: 32px; object-fit: contain; display: none; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.18)); }
+.sb-icon { position: relative; width: 26px; height: 26px; flex: none; display: grid; place-items: center; }
+.sb-img { width: 26px; height: 26px; object-fit: contain; display: none; }
 .sb-glyph { width: 22px; height: 22px; color: rgba(255, 255, 255, 0.85); }
 .has-skin .sb-img { display: block; }
 .has-skin .sb-glyph { display: none; }
@@ -154,16 +141,25 @@ option { color: #1d1d1f; }
 .sb-badge:empty { display: none; }
 .sb-badge.is-timer { background: #fff; color: var(--btn-bottom); }
 .sb-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
-.sb-sync { display: flex; align-items: center; gap: 8px; padding: 0 14px; font: 400 12px/1.4 var(--font-text); color: rgba(255, 255, 255, 0.55); }
-.sb-sync-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); flex: none; }
-.sb-sync.ok .sb-sync-dot { background: #8ee59a; }
-.sb-sync.busy .sb-sync-dot { background: #ffd08a; animation: blink 1.2s var(--ease-nav) infinite; }
-.sb-sync.error .sb-sync-dot { background: #ff8f87; }
 @keyframes blink { 50% { opacity: 0.3; } }
-.sb-sync button { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+
+/* top-right round buttons (search, settings on phones) */
+.corner-actions { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 18px; z-index: 50; display: flex; gap: 8px; }
+.round-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  color: #fff;
+  transition: background-color 0.2s, transform 0.4s var(--spring-bouncy);
+}
+.round-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.round-btn:active { transform: scale(0.92); }
+.round-btn .ico { width: 17px; height: 17px; stroke-width: 1.9; }
+.corner-actions .only-phone { display: none; }
 
 /* phone: tab bar and two round buttons in the top corner instead of the sidebar */
-.tabbar, .phone-actions { display: none; }
+.tabbar { display: none; }
 @media (max-width: 999px) {
   .sidebar { display: none; }
   .main { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); }
@@ -183,17 +179,9 @@ option { color: #1d1d1f; }
   .tab[aria-current="page"] .sb-icon { transform: scale(1.08); }
   .tab:active { opacity: 0.6; }
   .tab.is-gap { pointer-events: none; }
-  .phone-actions { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); right: 12px; z-index: 50; display: flex; gap: 8px; }
-  .round-btn {
-    width: 38px; height: 38px; border-radius: 50%;
-    display: grid; place-items: center;
-    background: rgba(255, 255, 255, 0.14);
-    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-    box-shadow: var(--glass-edge);
-    color: #fff;
-  }
-  .round-btn .ico { width: 18px; height: 18px; stroke-width: 1.9; }
-  .phone-week { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); left: 16px; z-index: 50; }
+  .corner-actions { top: calc(env(safe-area-inset-top, 0px) + 10px); right: 12px; }
+  .corner-actions .only-phone { display: grid; }
+  .round-btn { width: 38px; height: 38px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 }
 
 /* ---------- the round button (CleanMyMac's ubiquitous Scan button) ---------- */
@@ -201,7 +189,7 @@ option { color: #1d1d1f; }
 .orb {
   position: fixed; z-index: 56;
   left: calc(var(--sidebar-w) + (100vw - var(--sidebar-w)) / 2);
-  bottom: 30px;
+  bottom: 18px;
   width: var(--orb); height: var(--orb);
   margin-left: calc(var(--orb) / -2);
   border-radius: 50%;
@@ -221,12 +209,12 @@ option { color: #1d1d1f; }
 }
 /* with the skin, the halo is CleanMyMac's own aurora texture for the module, spun and blurred */
 .has-skin .orb-halo {
-  inset: -30%;
+  inset: -42%;
   background: var(--orb-tex) center / cover no-repeat;
   -webkit-mask: radial-gradient(closest-side, #000 52%, transparent 100%); mask: radial-gradient(closest-side, #000 52%, transparent 100%);
   filter: blur(14px) saturate(1.15);
   opacity: 0.7;
-  animation: orb-spin 9s linear infinite;
+  animation: orb-spin 7s linear infinite, orb-breathe 3.6s ease-in-out infinite;
   transition: opacity 0.4s;
 }
 .orb-core {
@@ -254,7 +242,8 @@ option { color: #1d1d1f; }
 .orb-halo { transition: opacity 0.5s, transform 0.8s var(--spring-smooth); }
 .orb:focus-visible { outline: none; }
 .orb:focus-visible .orb-core { box-shadow: inset 0 0 0 2px #fff, 0 0 0 4px rgba(255, 255, 255, 0.5); }
-@keyframes orb-spin { to { transform: rotate(360deg); } }
+@keyframes orb-spin { to { rotate: 360deg; } }
+@keyframes orb-breathe { 50% { scale: 1.08; } }
 @media (max-width: 999px) {
   .orb { bottom: calc(env(safe-area-inset-bottom, 0px) + 8px + 72px - var(--orb) / 2 - 6px); font-size: 15px; }
   .orb-label .num { font-size: 16px; }
@@ -276,37 +265,35 @@ option { color: #1d1d1f; }
 .mod-hero { position: relative; text-align: center; padding: 44px var(--gutter) 0; }
 .mod-render {
   position: relative;
-  width: min(340px, 100%); height: 290px;
+  width: min(240px, 100%); height: 200px;
   margin: 0 auto;
   -webkit-tap-highlight-color: transparent;
   user-select: none; -webkit-user-select: none;
+  touch-action: pan-y;
 }
 .mod-hero .mod-render.is-empty { height: 0; }
-.mod-art { position: absolute; inset: 0; will-change: transform; transform-origin: 50% 55%; }
-.mod-still, .mod-video, .mod-canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; opacity: 0; pointer-events: none; }
-.mod-render[data-show="still"] .mod-still, .mod-render[data-show="video"] .mod-video, .mod-render[data-show="canvas"] .mod-canvas { opacity: 1; }
-/* the soft light pooled under the render, as in CleanMyMac's windows */
-.mod-render::after {
-  content: ""; position: absolute; left: 18%; right: 18%; bottom: -6%; height: 22%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--btn-top) 45%, transparent), transparent);
-  filter: blur(14px); opacity: 0.55; pointer-events: none; z-index: -1;
-}
-.mod-render.is-empty::after { display: none; }
-.view-today .mod-render { width: min(380px, 100%); height: clamp(230px, calc(100svh - 520px), 340px); }
+/* the 400 px frames have wide transparent margins; let them bleed past the slot so the object
+   itself is CleanMyMac-sized (~318 pt in a 720 pt window) without pushing the page down */
+.mod-art { position: absolute; inset: -17%; opacity: 0; transform: scale(0.94); pointer-events: none; }
+.mod-render.is-in .mod-art { opacity: 1; transform: none; transition: opacity 0.5s var(--ease-nav), transform 0.9s var(--spring-smooth); }
+.mod-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+/* Today's object sits where CleanMyMac's does: ~318 × 276 pt, high in the window */
+.view-today .mod-render, .view-focus .mod-render { width: min(300px, 100%); height: clamp(190px, calc(100svh - 490px), 270px); }
+.view-focus .mod-body { padding-top: 40px; }
 .mod-title { font: 400 40px/1.15 var(--font-display); letter-spacing: -0.008em; margin-top: 10px; text-wrap: balance; }
-.view-today .mod-title { margin-top: 18px; }
+.view-today .mod-title, .view-focus .mod-title { margin-top: 18px; }
 .mod-sub { font: 400 17px/1.45 var(--font-text); letter-spacing: -0.01em; color: var(--text-2); max-width: 600px; margin: 8px auto 0; text-wrap: balance; }
 .mod-sub:empty { display: none; }
 .mod-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
 .mod-actions:empty { display: none; }
 .mod-body { padding-top: 36px; }
-.mod-hero { padding-top: clamp(16px, 3.5vh, 48px); }
-.view-today .mod-hero { padding-top: clamp(20px, 4.5vh, 64px); }
+.mod-hero { padding-top: clamp(16px, 3.5vh, 44px); }
+.view-today .mod-hero, .view-focus .mod-hero { padding-top: clamp(16px, 4vh, 44px); }
 @media (max-width: 999px) {
   .mod-hero { padding-top: calc(env(safe-area-inset-top, 0px) + 52px); }
   .view-today .mod-hero { padding-top: calc(env(safe-area-inset-top, 0px) + 52px); }
-  .mod-render { height: 190px; width: min(240px, 100%); }
-  .view-today .mod-render { width: min(280px, 100%); height: clamp(200px, calc(100svh - 600px), 250px); }
+  .mod-render { height: 190px; width: min(230px, 100%); }
+  .view-today .mod-render { width: min(290px, 100%); height: clamp(210px, calc(100svh - 580px), 260px); }
   .mod-title { font-size: 30px; margin-top: 12px; }
   .mod-sub { font-size: 16px; }
   .mod-body { padding-top: 28px; }
@@ -412,3 +399,10 @@ option { color: #1d1d1f; }
 }
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 .reduce-motion .reveal { animation: none !important; }
+
+/* sync status line (Settings → Account) */
+.gf-sync { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
+.gf-sync-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); flex: none; }
+.gf-sync.ok .gf-sync-dot { background: #8ee59a; }
+.gf-sync.busy .gf-sync-dot { background: #ffd08a; animation: blink 1.2s var(--ease-nav) infinite; }
+.gf-sync.error .gf-sync-dot { background: #ff8f87; }

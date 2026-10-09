@@ -31,7 +31,7 @@ export function openLessonSheet(app, lesson) {
     title: s.name,
     lede: `${M.fmtLong(day)}, ${l.period.start}–${l.period.end}${l.room ? `, ${l.room}` : ''}.`,
     size: 'md',
-    build(body) {
+    build(body, ctl) {
       const due = M.dueForLesson(l);
       const nexts = M.nextLessons(s.id, 3, M.atMinutes(day, l.end));
       const note = field({ id: 'lesson-note', label: 'What happened, what to bring, what was set', area: true, value: l.note || '' });
@@ -68,7 +68,7 @@ export function openDaySheet(app, date) {
     title: M.fmtLong(date),
     lede: hol ? hol.title : M.isSchoolDay(date) ? `${ls.filter((l) => l.period.kind !== 'reg').length} lessons, starting at ${ls[0]?.period.start || '—'}.` : 'A day off.',
     size: 'md',
-    build(body) {
+    build(body, ctl) {
       const items = M.allItems().filter((i) => i.due === ds).sort(M.sortByDue);
       const ev = M.eventsOn(ds);
       body.append(
@@ -96,7 +96,7 @@ export function openSubjectSheet(app, id) {
     eyebrow: isNew ? 'New subject' : s.level || 'Subject',
     title: isNew ? 'Add a subject.' : s.name,
     footer: [btn('Cancel', () => ctl.close(), { size: 'elevated', variant: 'secondary-neutral' }), btn(isNew ? 'Add' : 'Save', () => commit(), { size: 'elevated' })],
-    build(body) {
+    build(body, ctl) {
       const stats = isNew ? null : M.subjectStats(s.id);
       const per = isNew ? 0 : M.lessonsPerCycle(s.id);
       const nexts = isNew ? [] : M.nextLessons(s.id, 3);
@@ -170,7 +170,7 @@ export function openEventEditor(app, existing) {
   const ctl = openModal({
     eyebrow: 'Term date', title: isNew ? 'Add a date.' : e.title, size: 'md',
     footer: [btn('Cancel', () => ctl.close(), { size: 'elevated', variant: 'secondary-neutral' }), btn(isNew ? 'Add' : 'Save', () => commit(), { size: 'elevated' })],
-    build(body) {
+    build(body, ctl) {
       const end = field({ id: 'ev-end', label: 'Ends', type: 'date', value: e.end || e.start, onChange: (v) => (e.end = v < e.start ? e.start : v) });
       const start = field({ id: 'ev-start', label: 'Starts', type: 'date', value: e.start, onChange: (v) => { e.start = v; if (!e.end || e.end < v) { e.end = v; end.input.value = v; } } });
       body.append(
@@ -204,7 +204,7 @@ export function pickSubject(app, current, origin, subtitle) {
     const ctl = openModal({
       eyebrow: subtitle, title: 'Choose a subject.', size: 'md',
       onClose: () => resolve(result),
-      build(body) {
+      build(body, ctl) {
         body.append(
           tiles({
             label: 'Subject', value: current || null, cols: 3,
@@ -224,7 +224,7 @@ export function openWeekPicker() {
   const first = (L) => M.lessonPeriods().slice(0, 3).map((p) => M.subject(S.timetable?.cells?.[M.cellKey(L, 1, p.id)])?.short).filter(Boolean).join(', ');
   const ctl = openModal({
     eyebrow: 'Timetable', title: `Which week is ${M.fmtRange(mon, M.addDays(mon, 4))}?`, lede: 'Every other week alternates from here.', size: 'sm',
-    build(body) {
+    build(body, ctl) {
       body.append(tiles({
         label: 'Week', value: M.weekLetter(mon), cols: 2,
         options: ['A', 'B'].map((L) => ({ value: L, label: `Week ${L}`, sub: first(L) ? `Monday: ${first(L)}…` : '' })),

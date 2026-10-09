@@ -4,7 +4,7 @@
 
 const DB = 'term-skin';
 const STORE = 'files';
-const TYPES = { png: 'image/png', mov: 'video/quicktime', mp4: 'video/mp4', json: 'application/json', webp: 'image/webp' };
+const TYPES = { avif: 'image/avif', m4a: 'audio/mp4', png: 'image/png', mov: 'video/quicktime', mp4: 'video/mp4', json: 'application/json', webp: 'image/webp' };
 
 let urls = new Map();
 const listeners = new Set();

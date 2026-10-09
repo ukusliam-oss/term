@@ -87,7 +87,6 @@ function paintIcons() {
   }
 }
 
-const sbWeek = h('button.sb-week', { type: 'button', title: 'Change the week letter', onclick: () => app.openWeekPicker() });
 const sbItems = {};
 const sbBadges = {};
 const sbItem = (m) => {
@@ -97,13 +96,12 @@ const sbItem = (m) => {
   sbItems[m.id] = b;
   return b;
 };
-const sbSync = h('p.sb-sync');
+// CleanMyMac's sidebar is only its modules, with the extra one (Assistant there, Settings here)
+// pinned to the bottom.
 const sbSel = h('span.sb-sel', { 'aria-hidden': 'true' });
 const sidebar = h('aside.sidebar', { 'aria-label': 'Modules' }, sbSel,
-  h('div.sb-brand', null, h('span.sb-mark', { 'aria-hidden': 'true' }), 'Term', sbWeek),
-  h('button.sb-search', { type: 'button', onclick: () => toggleSearch() }, icon('search', 15), h('span', { text: 'Search' }), h('kbd', { text: '⌘K' })),
   h('nav.sb-list', null, ...MODS.filter((m) => !m.bottom).map(sbItem)),
-  h('div.sb-bottom', null, sbSync, ...MODS.filter((m) => m.bottom).map(sbItem)));
+  h('div.sb-bottom', null, ...MODS.filter((m) => m.bottom).map(sbItem)));
 
 const tabButtons = {};
 const tabs = MODS.filter((m) => m.tab);
@@ -114,9 +112,9 @@ function tabBtn(m) {
   tabButtons[m.id] = b;
   return b;
 }
-const phoneActions = h('div.phone-actions', null,
-  h('button.round-btn', { type: 'button', 'aria-label': 'Search', onclick: () => toggleSearch() }, icon('search', 18)),
-  h('button.round-btn', { type: 'button', 'aria-label': 'Settings', onclick: () => go('settings') }, icon('gear', 18)));
+const phoneActions = h('div.corner-actions', null,
+  h('button.round-btn', { type: 'button', 'aria-label': 'Search', title: 'Search (⌘K)', onclick: () => toggleSearch() }, icon('search', 18)),
+  h('button.round-btn.only-phone', { type: 'button', 'aria-label': 'Settings', onclick: () => go('settings') }, icon('gear', 18)));
 
 // the round button
 const R = 52;
@@ -307,16 +305,8 @@ function paintBadges() {
   const fb = sbBadges.focus;
   fb.classList.toggle('is-timer', focus.running);
   fb.textContent = focus.running ? focus.fmt(focus.remaining()) : '';
-  // the week the day is about: today's, or the next school day's once today is done
-  const now = new Date();
-  const day = M.isSchoolDay(now) && M.status(now).state !== 'after' ? M.today() : M.nextSchoolDay(now) || M.today();
-  sbWeek.textContent = S.timetable ? `Week ${M.weekLetter(day)}` : '';
-  sbWeek.hidden = !S.timetable;
 }
 function paintChrome() {
-  const s = db.syncLabel();
-  sbSync.className = `sb-sync ${s.tone}`;
-  fill(sbSync, h('span.sb-sync-dot'), h('span', { text: s.text }));
   paintBadges();
   paintOrb();
 }
