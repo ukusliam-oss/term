@@ -257,10 +257,11 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) app.
 // ---------- offline app shell ----------
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(() => {});
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloading) return;
+    if (reloading || !hadController) return; // first install, not an update
     toast('Term was updated.', { action: 'Reload', duration: 10000, onAction: () => { reloading = true; location.reload(); } });
   });
 }

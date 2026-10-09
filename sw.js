@@ -1,6 +1,6 @@
 // Offline app shell. Same-origin files are served from cache and refreshed in the background;
 // the sync API (Supabase, another origin) always goes to the network. Bump VERSION on deploy.
-const VERSION = 'term-v3.0.0';
+const VERSION = 'term-v3.0.1';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'css/tokens.css', 'css/base.css', 'css/components.css', 'css/views.css',
