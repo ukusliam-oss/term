@@ -4,6 +4,7 @@
 import { h, icon, fill } from './dom.js';
 import { motion, springValue } from '../motion/animate.js';
 import { springs } from '../motion/spring.js';
+import { play as sound } from '../sound.js';
 
 export const COLORS = ['red', 'orange', 'yellow', 'green', 'mint', 'teal', 'cyan', 'blue', 'indigo', 'purple', 'pink', 'brown', 'gray'];
 export const cvar = (name) => (name === 'blue' ? 'var(--blue-sys)' : `var(--${COLORS.includes(name) ? name : 'gray'})`);
@@ -122,6 +123,7 @@ export function check({ checked = false, label = 'Done', onChange }) {
     const next = b.getAttribute('aria-checked') !== 'true';
     b.setAttribute('aria-checked', String(next));
     motion(b).set({ scale: next ? 0.8 : 0.92 }).to({ scale: 1 }, springs.bouncy);
+    if (next) sound('clean-finished', 0.55);
     onChange?.(next);
   });
   return b;

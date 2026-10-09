@@ -14,6 +14,7 @@ import { initToasts, toast } from './ui/toast.js';
 import { initSearch, openSearch, openQuickAdd, closeSearch, flyoutOpen } from './ui/search.js';
 import { initSky, setModule, iconOf } from './stage.js';
 import { skin, loadSkin, importSkin } from './skin.js';
+import { play as sound, setSounds } from './sound.js';
 import { createHome } from './views/home.js';
 import { createTimetable } from './views/timetable.js';
 import { createPlanner } from './views/planner.js';
@@ -97,7 +98,8 @@ const sbItem = (m) => {
   return b;
 };
 const sbSync = h('p.sb-sync');
-const sidebar = h('aside.sidebar', { 'aria-label': 'Modules' },
+const sbSel = h('span.sb-sel', { 'aria-hidden': 'true' });
+const sidebar = h('aside.sidebar', { 'aria-label': 'Modules' }, sbSel,
   h('div.sb-brand', null, h('span.sb-mark', { 'aria-hidden': 'true' }), 'Term', sbWeek),
   h('button.sb-search', { type: 'button', onclick: () => toggleSearch() }, icon('search', 15), h('span', { text: 'Search' }), h('kbd', { text: '⌘K' })),
   h('nav.sb-list', null, ...MODS.filter((m) => !m.bottom).map(sbItem)),
@@ -124,6 +126,12 @@ const orbLabel = h('span.orb-label');
 const orb = h('button.orb', { type: 'button', hidden: true }, h('span.orb-halo', { 'aria-hidden': 'true' }), h('span.orb-core', { 'aria-hidden': 'true' }), ring, orbLabel);
 let orbAction = null;
 orb.addEventListener('click', () => orbAction?.());
+// CleanMyMac's button clicks: one sound on press, one on release
+orb.addEventListener('pointerdown', () => { orb.classList.add('is-pressed'); sound('down'); });
+const orbUp = (e) => { if (!orb.classList.contains('is-pressed')) return; orb.classList.remove('is-pressed'); if (e.type === 'pointerup') sound('up'); };
+orb.addEventListener('pointerup', orbUp);
+orb.addEventListener('pointerleave', orbUp);
+orb.addEventListener('pointercancel', orbUp);
 
 const curtain = h('div.gn-curtain');
 const stage = h('main.main', { id: 'stage' });
@@ -142,6 +150,17 @@ app.views = {
   settings: createSettings(app),
 };
 for (const v of Object.values(app.views)) stage.append(v.el);
+
+/** Slide the sidebar's highlight to the current row. */
+function moveSelection(instant = false) {
+  const b = sbItems[app.current];
+  if (!b || !sidebar.getClientRects().length) return;
+  const y = b.getBoundingClientRect().top - sidebar.getBoundingClientRect().top;
+  if (instant) sbSel.style.transition = 'none';
+  sbSel.style.transform = `translateY(${y}px)`;
+  if (instant) { void sbSel.offsetWidth; sbSel.style.transition = ''; }
+}
+addEventListener('resize', () => moveSelection(true));
 
 function toggleSearch() {
   openSearch({
@@ -204,13 +223,17 @@ function go(id, opts = {}) {
   setModule(id);
   next.update();
   app.dirty.delete(id);
+  // the entrance plays once, on arrival — not again whenever the page re-renders
   next.el.classList.remove('is-entering');
   void next.el.offsetWidth;
   next.el.classList.add('is-entering');
+  clearTimeout(go.entering);
+  go.entering = setTimeout(() => next.el.classList.remove('is-entering'), 1400);
   if (!opts.section) window.scrollTo(0, 0);
   next.art?.intro();
   paintIcons();
   for (const [k, b] of Object.entries(sbItems)) k === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current');
+  moveSelection();
   for (const [k, b] of Object.entries(tabButtons)) k === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current');
   document.title = id === 'home' ? 'Term' : `${m.label} · Term`;
   paintOrb();
@@ -274,6 +297,7 @@ window.addEventListener('keydown', (e) => {
 
 function applySettings() {
   setReducedMotion(S.settings.reduceMotion);
+  setSounds(S.settings.sounds !== false);
   local('term.settings.reduceMotion', !!S.settings.reduceMotion);
 }
 function paintBadges() {
@@ -331,7 +355,7 @@ skin.onChange(() => {
   app.views[app.current]?.update();
 });
 app.importSkin = async (file) => {
-  try { const n = await importSkin(file); toast(`Skin installed — ${n} files.`); } catch (e) { toast(e.message || 'Couldn’t read that skin file.', { tone: 'error' }); }
+  try { const n = await importSkin(file); toast(`Skin installed — ${n} files.`); sound('wipe', 0.8); } catch (e) { toast(e.message || 'Couldn’t read that skin file.', { tone: 'error' }); }
 };
 // Dropping the skin file anywhere on the window installs it.
 window.addEventListener('dragover', (e) => { if ([...(e.dataTransfer?.items || [])].some((i) => i.kind === 'file')) e.preventDefault(); });
@@ -361,10 +385,11 @@ try { history.scrollRestoration = 'manual'; } catch { /* ignore */ }
 applySettings();
 const start = location.hash.slice(1);
 go(app.views[start] ? start : 'home');
+moveSelection(true);
 paintChrome();
 loadSkin().then((has) => {
   // On the local dev server, ?devskin installs private/term-skin.zip without the file picker.
-  if (has || !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || !new URLSearchParams(location.search).has('devskin')) return;
+  if ((has && (skin.meta?.version || 1) >= 2) || !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || !new URLSearchParams(location.search).has('devskin')) return;
   fetch('private/term-skin.zip').then((r) => (r.ok ? r.blob() : null)).then((b) => b && app.importSkin(new File([b], 'term-skin.zip'))).catch(() => {});
 });
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('devdata')) {

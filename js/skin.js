@@ -10,6 +10,7 @@ let urls = new Map();
 const listeners = new Set();
 
 export const skin = {
+  meta: null,
   get has() { return urls.size > 0; },
   url: (path) => urls.get(path) || '',
   /** Safari (and every browser on iOS) plays HEVC with transparency; elsewhere the still frame is shown. */
@@ -32,9 +33,11 @@ const tx = (db, mode, fn) => new Promise((res, rej) => {
   t.onerror = () => rej(t.error);
 });
 
-function publish(entries) {
+async function publish(entries) {
   for (const u of urls.values()) URL.revokeObjectURL(u);
   urls = new Map(entries.map(([path, blob]) => [path, URL.createObjectURL(blob)]));
+  const manifest = entries.find(([p]) => p === 'skin.json')?.[1];
+  skin.meta = manifest ? await manifest.text().then(JSON.parse).catch(() => null) : null;
   for (const fn of listeners) fn();
 }
 
@@ -48,7 +51,7 @@ export async function loadSkin() {
       return list;
     });
     db.close();
-    publish(entries);
+    await publish(entries);
   } catch (e) { console.warn('[term] skin', e); }
   return skin.has;
 }
@@ -91,7 +94,7 @@ export async function importSkin(file) {
   const db = await open();
   await tx(db, 'readwrite', (s) => { s.clear(); for (const [p, b] of entries) s.put(b, p); });
   db.close();
-  publish(entries);
+  await publish(entries);
   return entries.length;
 }
 
@@ -99,5 +102,5 @@ export async function removeSkin() {
   const db = await open();
   await tx(db, 'readwrite', (s) => s.clear());
   db.close();
-  publish([]);
+  await publish([]);
 }

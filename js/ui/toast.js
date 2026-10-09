@@ -3,6 +3,7 @@
 import { h, icon } from './dom.js';
 import { motion } from '../motion/animate.js';
 import { springs } from '../motion/spring.js';
+import { play as sound } from '../sound.js';
 
 let layer;
 let current = null;
@@ -19,6 +20,7 @@ function dismiss(t, replaced = false) {
 }
 
 export function toast(message, { action, onAction, icon: ico = null, duration = 3800, tone = '' } = {}) {
+  if (tone === 'error') sound('error', 0.7);
   if (current) dismiss(current, true);
   const t = { el: null, timer: 0 };
   t.el = h(`div.toast${tone ? `.toast-${tone}` : ''}`, { role: 'status' },

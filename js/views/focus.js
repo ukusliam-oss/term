@@ -9,6 +9,7 @@ import * as M from '../model.js';
 import { tiles, btn } from '../ui/kit.js';
 import { toast } from '../ui/toast.js';
 import { pageFrame } from './frame.js';
+import { play as sound } from '../sound.js';
 
 const KEY = 'term.focus.v1';
 const DEFAULT = { status: 'idle', subjectId: null, minutes: 25, endAt: 0, remainMs: 0 };
@@ -48,6 +49,7 @@ export function createFocus() {
     const s = M.subject(st.subjectId);
     db.logFocus(M.ymd(new Date()), st.subjectId, st.minutes);
     toast(`Focus complete. ${st.minutes} minutes${s ? ` of ${s.name}` : ''}.`, { duration: 6000 });
+    sound('scan-finished');
     set({ ...DEFAULT, subjectId: st.subjectId, minutes: st.minutes });
     lock(false);
   }

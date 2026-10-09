@@ -75,6 +75,8 @@ export function createSettings(app) {
           more(skin.has ? 'Replace the skin file' : 'Install the skin file (term-skin.zip)', () => skinInput.click()),
           skin.has ? more('Remove the skin', async () => { await removeSkin(); toast('Skin removed.'); }, 'more-danger') : null),
         h('div.panel-gap'),
+        checkbox({ id: 'set-sounds', label: 'Sounds', sub: 'CleanMyMac’s clicks and chimes on the round button, finished sessions and ticked-off tasks.', checked: S.settings.sounds !== false, onChange: (v) => db.saveSettings({ sounds: v }) }),
+        h('div.panel-gap'),
         checkbox({ id: 'set-motion', label: 'Reduce motion', checked: S.settings.reduceMotion, onChange: (v) => db.saveSettings({ reduceMotion: v }) })),
 
       section('set-data', 'Data', 'Back up everything as a file, export the planner for a spreadsheet, or restore a backup.',

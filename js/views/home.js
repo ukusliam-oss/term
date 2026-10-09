@@ -10,6 +10,8 @@ import * as M from '../model.js';
 import { btn, more, dot, card, shelf, progress, check } from '../ui/kit.js';
 import { pageFrame } from './frame.js';
 import { iconOf } from '../stage.js';
+import { springValue, motionReduced } from '../motion/animate.js';
+import { springs } from '../motion/spring.js';
 
 const GLYPH = { timetable: 'timetable', planner: 'planner', school: 'school', focus: 'timer' };
 
@@ -89,12 +91,28 @@ export function createHome(app) {
 
   // ---------- results row (Smart Care's tiles) ----------
 
+  // Numbers count up to their value when they change, as CleanMyMac's results do.
+  const shown = new Map();
+  function countUp(el, page, value) {
+    const m = /^(\d+)(.*)$/.exec(value);
+    const prev = shown.get(page);
+    shown.set(page, value);
+    if (!m || prev === value || motionReduced()) { el.textContent = value; return; }
+    const from = Number(/^(\d+)/.exec(prev || '')?.[1] || 0);
+    const to = Number(m[1]);
+    el.textContent = `${from}${m[2]}`;
+    const sv = springValue(from, (x) => { el.textContent = `${Math.round(x)}${m[2]}`; });
+    requestAnimationFrame(() => sv.to(to, springs.gentle));
+  }
+
   function tile(page, label, value, sub, action, onAction) {
     const src = iconOf(page, 'tile');
+    const valueEl = h('p.rtile-value');
+    countUp(valueEl, page, value);
     return h('article.rtile', null,
       h('div.rtile-art', null, src ? h('img', { src, alt: '' }) : icon(GLYPH[page], 40, 'rtile-glyph')),
       h('p.rtile-label', { text: label }),
-      h('p.rtile-value', { text: value }),
+      valueEl,
       h('p.rtile-sub', { text: sub }),
       btn(action, onAction, { size: 'reduced', cls: 'rtile-btn' }));
   }

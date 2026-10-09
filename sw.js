@@ -1,10 +1,10 @@
 // Offline app shell. Same-origin files are served from cache and refreshed in the background;
 // the sync API (Supabase, another origin) always goes to the network. Bump VERSION on deploy.
-const VERSION = 'term-v4.0.1';
+const VERSION = 'term-v4.1.0';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest',
   'css/tokens.css', 'css/base.css', 'css/components.css', 'css/views.css',
-  'js/main.js', 'js/config.js', 'js/store.js', 'js/model.js', 'js/nlp.js', 'js/ai.js', 'js/stage.js', 'js/skin.js',
+  'js/main.js', 'js/config.js', 'js/store.js', 'js/model.js', 'js/nlp.js', 'js/ai.js', 'js/stage.js', 'js/skin.js', 'js/sound.js',
   'js/motion/spring.js', 'js/motion/animate.js', 'js/motion/flip.js', 'js/motion/gesture.js',
   'js/ui/dom.js', 'js/ui/kit.js', 'js/ui/segment.js', 'js/ui/tabs.js', 'js/ui/search.js', 'js/ui/sheet.js', 'js/ui/toast.js',
   'js/views/home.js', 'js/views/timetable.js', 'js/views/planner.js', 'js/views/school.js', 'js/views/settings.js',
