@@ -262,7 +262,7 @@ option { color: #1d1d1f; }
   user-select: none; -webkit-user-select: none;
   pointer-events: none;
 }
-.mod-render.is-empty { height: 0; }
+.mod-hero .mod-render.is-empty { height: 0; }
 .mod-still, .mod-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; opacity: 0; }
 .mod-render[data-show="still"] .mod-still, .mod-render[data-show="video"] .mod-video { opacity: 1; }
 .mod-render.is-arriving .mod-still { animation: render-in 1.1s var(--spring-bouncy) both; }
