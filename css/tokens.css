@@ -1,0 +1,73 @@
+/* Term — apple.com's design language, values read from its own stylesheets
+   (ac-globalnav, ac-localnav, the Store's rf-ccard, the typography-* scale, ac-globalfooter).
+   Layout: 44px global nav that scrolls away → 52px sticky local nav per page → 980px content
+   column; sections alternate #fff / #f5f5f7, with black units for emphasis. Light only, as apple.com is. */
+
+:root {
+  color-scheme: light;
+
+  --text: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #86868b;
+  --link: #0066cc;
+  --blue: #0071e3;
+  --blue-hover: #0076df;
+  --blue-active: #006edb;
+  --new: #bf4800;
+  --ok: #008009;
+  --error: #e30000;
+
+  --bg: #ffffff;
+  --bg-alt: #f5f5f7;
+  --fill: #e8e8ed;
+  --hair: #d2d2d7;
+  --keyline: rgba(0, 0, 0, 0.16);
+  --field-border: #86868b;
+
+  --dark: #000000;
+  --dark-card: #1d1d1f;
+  --dark-text: #f5f5f7;
+  --dark-text-2: #86868b;
+  --dark-link: #2997ff;
+
+  --nav-bg: rgba(250, 250, 252, 0.8);
+  --nav-bg-stuck: rgba(250, 250, 252, 0.92);
+  --nav-opened: #fafafc;
+  --nav-color: rgba(0, 0, 0, 0.8);
+  --nav-color-2: #333336;
+  --curtain: rgba(232, 232, 237, 0.4);
+  --scrim: rgba(0, 0, 0, 0.48);
+
+  --card-shadow: 2px 4px 12px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 2px 4px 16px rgba(0, 0, 0, 0.16);
+  --paddle: rgba(210, 210, 215, 0.64);
+  --paddle-hover: rgba(223, 223, 227, 0.698);
+
+  --ease-nav: cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-ln: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --ease-card: cubic-bezier(0, 0, 0.5, 1);
+
+  --gradient: linear-gradient(90deg, #0090f7 0%, #ba62fc 38%, #f2416b 70%, #f55600 100%);
+
+  --font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --content: 980px;
+  --gutter: 22px;
+
+  /* subject colours — shown only as small dots, as product colours are on apple.com */
+  --red: #ff3b30; --orange: #ff9500; --yellow: #ffcc00; --green: #34c759; --mint: #00c7be;
+  --teal: #30b0c7; --cyan: #32ade6; --blue-sys: #007aff; --indigo: #5856d6; --purple: #af52de;
+  --pink: #ff2d55; --brown: #a2845e; --gray: #8e8e93;
+
+  /* rewritten at boot with linear() curves sampled from js/motion/spring.js */
+  --spring-smooth: cubic-bezier(0.28, 0.11, 0.32, 1); --spring-smooth-d: 600ms;
+  --spring-snappy: cubic-bezier(0.28, 0.11, 0.32, 1); --spring-snappy-d: 500ms;
+  --spring-bouncy: cubic-bezier(0.28, 0.11, 0.32, 1); --spring-bouncy-d: 600ms;
+  --spring-quick: cubic-bezier(0.4, 0, 0.6, 1); --spring-quick-d: 320ms;
+  --spring-sheet: cubic-bezier(0.28, 0.11, 0.32, 1); --spring-sheet-d: 500ms;
+}
+
+@media (max-width: 734px) {
+  :root { --gutter: max(16px, 6.25vw); }
+}
