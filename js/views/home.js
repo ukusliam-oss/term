@@ -1,157 +1,84 @@
-// Home. A dark apple.com hero — what's on now or next, two buttons, and a live 3D product shot —
-// then everything a school day needs on one screen: lessons, what's due, the next assessment,
-// what to pack and focus time. Below that, a Store shelf of the next two weeks.
+// Today, laid out as CleanMyMac's Smart Care: the Smart Care render with a greeting and where the
+// day stands under it, then a results row — one tile per module with its icon, the number that
+// matters and a button — and under that the day itself: lessons, what's due, what to pack, the
+// next assessment and everything coming up. The round button starts a focus session.
 
 import { h, fill, icon, store as local } from '../ui/dom.js';
 import { S } from '../store.js';
 import * as db from '../store.js';
 import * as M from '../model.js';
 import { btn, more, dot, card, shelf, progress, check } from '../ui/kit.js';
+import { pageFrame } from './frame.js';
+import { iconOf } from '../stage.js';
 
-const SUBJECT_HEX = { red: '#ff3b30', orange: '#ff9500', yellow: '#ffcc00', green: '#34c759', mint: '#00c7be', teal: '#30b0c7', cyan: '#32ade6', blue: '#007aff', indigo: '#5856d6', purple: '#af52de', pink: '#ff2d55', brown: '#a2845e', gray: '#8e8e93' };
+const GLYPH = { timetable: 'timetable', planner: 'planner', school: 'school', focus: 'timer' };
 
 export function createHome(app) {
-  const eyebrow = h('p.hero-eyebrow');
-  const title = h('h1.hero-title');
-  const sub = h('p.hero-sub');
-  const ctas = h('div.button-group.hero-ctas');
-  const stage = h('div.hero-stage', { role: 'button', tabindex: '0', 'aria-label': 'This week’s letter. Drag to see next week; press to open the timetable.' }, h('span.hero-fallback'));
-  const capWeek = h('p.hero-cap-week');
-  const capHint = h('p.hero-cap-hint');
-  const caption = h('div.hero-caption', null, capWeek, capHint);
-  const hero = h('section.hero.on-dark', null, h('div.hero-copy', null, eyebrow, title, sub, ctas), stage, caption);
+  const f = pageFrame({ id: 'home', title: '' });
+  f.el.classList.add('view-today');
   const notice = h('div.wrap.home-notice');
-  const todayHead = h('div.today-head');
+  const results = h('div.wrap.results');
   const lessons = h('article.panel.panel-lessons');
   const due = h('article.panel.panel-due');
   const nextA = h('article.panel.panel-next');
   const pack = h('article.panel.panel-pack');
-  const focus = h('article.panel.panel-focus');
-  const today = h('section.section.today', { id: 'home-today' },
-    notice,
-    h('div.wrap', null, todayHead, h('div.today-grid', null, lessons, due, h('div.today-side', null, nextA, pack, focus))));
+  const grid = h('div.wrap.today-grid', null, lessons, due, h('div.today-side', null, nextA, pack));
   const shelfBox = h('div.home-shelf');
   const fileInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
   fileInput.addEventListener('change', () => app.importFile(fileInput));
-  const el = h('section.view.view-home', { id: 'view-home', hidden: true, 'aria-label': 'Home' }, hero, today, shelfBox, fileInput);
+  f.body.append(notice, results, grid, shelfBox, fileInput);
 
-  let three = null;
-  let threeLoading = false;
-  let scene = null;
-  let weekIdx = 0;
   let live = null;
   let liveKey = '';
-
-  function ensure3D() {
-    if (three || threeLoading) return;
-    threeLoading = true;
-    import('../hero3d.js').then(({ createHero3D }) => {
-      three = createHero3D(stage, {
-        onFlip: (i) => { weekIdx = i; renderCaption(); },
-        onTap: (i) => app.go('timetable', { monday: M.addDays(heroMonday(), 7 * i) }),
-      });
-      if (scene) three.set(scene);
-    }).catch((e) => { console.warn('[term] 3D unavailable', e); stage.classList.add('is-fallback'); });
-  }
-  // The hero object shows this week's letter; turned over, next week's.
-  // …for the week the headline is about: today's, or the next school day's once today is done.
-  function heroMonday() {
-    const now = new Date();
-    const day = M.isSchoolDay(now) && M.status(now).state !== 'after' ? M.today() : M.nextSchoolDay(now) || M.today();
-    return M.startOfWeek(day);
-  }
-  function setScene(tint) {
-    const mon = heroMonday();
-    const letters = [M.weekLetter(mon), M.weekLetter(M.addDays(mon, 7))];
-    scene = { letters, tint };
-    stage.querySelector('.hero-fallback').textContent = letters[weekIdx];
-    stage.style.setProperty('--glow', tint);
-    three?.set(scene);
-    renderCaption();
-  }
-  function renderCaption() {
-    if (!S.timetable) { fill(capWeek); fill(capHint); return; }
-    const mon = M.addDays(heroMonday(), 7 * weekIdx);
-    const fri = M.addDays(mon, 4);
-    const L = M.weekLetter(mon);
-    const due = M.allItems().filter((i) => !M.isDone(i) && i.due && i.due >= M.ymd(mon) && i.due <= M.ymd(fri)).length;
-    const off = Math.round(M.daysBetween(M.startOfWeek(M.today()), mon) / 7);
-    const which = off === 0 ? 'This week' : off === 1 ? 'Next week' : 'The week after';
-    fill(capWeek,
-      h('span.hero-cap-strong', { text: `${which} is Week ${L}.` }),
-      ` ${M.fmtRange(mon, fri)} · ${due ? `${due} due` : 'nothing due yet'}.`);
-    fill(capHint,
-      h('span', { text: weekIdx ? 'Drag it back, or tap it for that week’s timetable. ' : 'Drag the letter to see the week after, or tap it for the timetable. ' }),
-      weekIdx ? null : h('button.more', { type: 'button', onclick: () => app.openWeekPicker() }, h('span', { text: `Not Week ${L}?` }), icon('chev', 12)));
-  }
 
   function update() {
     const now = new Date();
     renderHero(now);
     renderNotice();
-    renderToday(now);
+    renderResults(now);
+    renderDay(now);
     renderShelf();
-    if (!el.hidden) ensure3D();
   }
 
   // ---------- hero ----------
+
+  /** The week the headline is about: today's, or the next school day's once today is done. */
+  function heroDay(now) {
+    return M.isSchoolDay(now) && M.status(now).state !== 'after' ? M.today() : M.nextSchoolDay(now) || M.today();
+  }
 
   function renderHero(now) {
     const st = M.status(now);
     liveKey = `${st.state}:${st.current?.key || st.next?.key || ''}`;
     live = null;
     const name = (S.settings.name || '').split(' ')[0];
-
     if (st.state === 'empty') {
-      eyebrow.textContent = S.ready ? 'Welcome' : '';
-      title.textContent = S.ready ? 'Term.' : ' ';
-      sub.textContent = S.ready ? 'Your timetable, homework and tests in one place. Bring in your timetable to begin.' : 'Loading your planner…';
-      fill(ctas, S.ready ? btn('Import timetable file', () => fileInput.click(), { size: 'elevated' }) : null,
-        S.ready ? btn('Start from scratch', () => app.go('timetable'), { size: 'elevated', variant: 'secondary' }) : null);
-      setScene('#0071e3');
+      f.setTitle(S.ready ? 'Welcome to Term!' : ' ');
+      f.setSub(S.ready ? 'Your timetable, homework and tests in one place. Bring in your timetable to begin.' : 'Loading your planner…');
+      f.setControls(S.ready ? btn('Import timetable file', () => fileInput.click(), { size: 'elevated', variant: 'neutral' }) : null,
+        S.ready ? btn('Start from scratch', () => app.go('timetable', { edit: true }), { size: 'elevated' }) : null);
       return;
     }
-
-    const hex = (s) => SUBJECT_HEX[s?.color] || '#8e8e93';
+    f.setTitle(`${M.greeting(now)}${name ? `, ${name}` : ''}!`);
+    f.setControls();
+    const wk = ` Week ${M.weekLetter(heroDay(now))}.`;
     if (st.state === 'lesson') {
       const c = st.current;
-      const mins = () => Math.ceil(M.status(new Date()).remain ?? 0);
-      eyebrow.textContent = `Now · ${c.period.label}`;
-      title.textContent = c.subject.name;
-      sub.textContent = `${c.room ? `${c.room}, ` : ''}until ${c.period.end}. ${mins()} minutes left.`;
-      fill(ctas, btn('View lesson', (e) => app.openLesson(c, e.currentTarget), { size: 'elevated' }), homeworkBtn(c.subjectId));
-      setScene(hex(c.subject));
-      live = () => { sub.textContent = `${c.room ? `${c.room}, ` : ''}until ${c.period.end}. ${mins()} minute${mins() === 1 ? '' : 's'} left.`; };
+      const say = () => {
+        const left = Math.ceil(M.status(new Date()).remain ?? 0);
+        f.setSub(`${c.subject.name} now${c.room ? `, in ${c.room}` : ''} until ${c.period.end} — ${left} minute${left === 1 ? '' : 's'} left.${wk}`);
+      };
+      say();
+      live = say;
       return;
     }
-    const n = st.state === 'break' || st.state === 'before' ? st.next : st.next;
-    if (!n) {
-      eyebrow.textContent = M.fmtLong(now);
-      title.textContent = `${M.greeting(now)}${name ? `, ${name}` : ''}.`;
-      sub.textContent = 'Nothing on the timetable ahead.';
-      fill(ctas, btn('Open timetable', () => app.go('timetable'), { size: 'elevated' }));
-      return;
-    }
+    const n = st.next;
+    if (!n) { f.setSub('Nothing on the timetable ahead.'); return; }
     const sameDay = n.date === M.ymd(now);
-    const when = sameDay ? `at ${M.fromMin(n.start)}` : `${M.relDay(n.date, { long: true })} at ${M.fromMin(n.start)}`;
-    eyebrow.textContent = st.state === 'break' ? `${st.label} · back at ${M.fromMin(n.start)}`
-      : st.state === 'before' ? `${M.greeting(now)}${name ? `, ${name}` : ''}`
-        : st.state === 'holiday' ? st.holiday.title
-          : st.state === 'weekend' ? 'Weekend' : st.state === 'after' ? 'School’s out' : 'No lessons today';
-    title.textContent = n.subject.name;
-    sub.textContent = `${sameDay ? 'Next' : 'First'}, ${when}${n.room ? ` in ${n.room}` : ''}. Week ${n.letter}.`;
-    fill(ctas,
-      sameDay ? btn('View lesson', (e) => app.openLesson(n, e.currentTarget), { size: 'elevated' })
-        : btn(`${M.DAY_LONG[M.parseYMD(n.date).getDay()]}’s lessons`, (e) => app.openDay(M.parseYMD(n.date), e.currentTarget), { size: 'elevated' }),
-      homeworkBtn(n.subjectId));
-    setScene(hex(n.subject));
-  }
-
-  function homeworkBtn(subjectId) {
-    return btn('Add homework', (e) => {
-      const l = M.nextLesson(new Date(), subjectId);
-      app.openItem(null, { kind: 'homework', subjectId, due: l?.date, at: l ? M.fromMin(l.start) : null }, e.currentTarget);
-    }, { size: 'elevated', variant: 'secondary' });
+    const lead = st.state === 'break' ? `${st.label}. ` : st.state === 'holiday' ? `${st.holiday.title}. ` : '';
+    f.setSub(sameDay
+      ? `${lead}${n.subject.name} is next, at ${M.fromMin(n.start)}${n.room ? ` in ${n.room}` : ''}.${wk}`
+      : `${lead}First ${M.relDay(n.date, { long: true })}: ${n.subject.name} at ${M.fromMin(n.start)}${n.room ? ` in ${n.room}` : ''}.${wk}`);
   }
 
   function renderNotice() {
@@ -160,23 +87,66 @@ export function createHome(app) {
     if (show) fill(notice, h('p.notice-bar', null, icon('cloud', 16), h('span', { text: 'You’re not signed in, so this planner lives on this device only. ' }), more('Sign in to sync', () => app.go('settings', { section: 'account' }))));
   }
 
-  // ---------- today ----------
+  // ---------- results row (Smart Care's tiles) ----------
 
-  function renderToday(now) {
-    if (!S.timetable) { fill(todayHead); fill(lessons); fill(due); fill(nextA); fill(pack); fill(focus); today.hidden = true; return; }
-    today.hidden = false;
+  function tile(page, label, value, sub, action, onAction) {
+    const src = iconOf(page, 'tile');
+    return h('article.rtile', null,
+      h('div.rtile-art', null, src ? h('img', { src, alt: '' }) : icon(GLYPH[page], 40, 'rtile-glyph')),
+      h('p.rtile-label', { text: label }),
+      h('p.rtile-value', { text: value }),
+      h('p.rtile-sub', { text: sub }),
+      btn(action, onAction, { size: 'reduced', cls: 'rtile-btn' }));
+  }
+
+  function renderResults(now) {
+    if (!S.timetable) { fill(results); results.hidden = true; return; }
+    results.hidden = false;
+    const st = M.status(now);
+    const l = st.current || st.next;
+    const lessonsToday = M.isSchoolDay(now) ? M.lessonsOn(now).filter((x) => x.subjectId && !x.cancelled).length : 0;
+    const lessonTile = l
+      ? tile('timetable', st.current ? 'Now' : 'Next', l.subject.short || l.subject.name,
+        `${l.date === M.ymd(now) ? '' : `${M.relDay(l.date)} · `}${M.fromMin(l.start)}${l.room ? ` · ${l.room}` : ''}`,
+        'Timetable', () => app.go('timetable'))
+      : tile('timetable', 'Timetable', `${lessonsToday} lessons`, 'today', 'Timetable', () => app.go('timetable'));
+
+    const horizon = M.ymd(M.addDays(M.today(), 7));
+    const open = M.allItems().filter((i) => !M.isDone(i) && i.kind !== 'assessment' && i.due && i.due <= horizon).sort(M.sortByDue);
+    const late = open.filter((i) => M.dueIn(i) < 0).length;
+    const soon = open.filter((i) => M.dueIn(i) >= 0 && M.dueIn(i) <= 1).length;
+    const dueTile = tile('planner', 'Due this week', open.length ? `${open.length} to do` : 'All clear',
+      open.length ? [late ? `${late} late` : '', soon ? `${soon} by tomorrow` : '', !late && !soon ? `next ${M.relDay(open[0].due)}` : ''].filter(Boolean).join(' · ') : 'Nothing due in the next week',
+      open.length ? 'Review' : 'Add', () => (open.length ? app.go('planner') : app.openQuickAdd()));
+
+    const a = M.allItems().filter((i) => i.kind === 'assessment' && !M.isDone(i) && i.due && M.dueIn(i) >= 0).sort(M.sortByDue)[0];
+    const n = a ? M.dueIn(a) : 0;
+    const testTile = a
+      ? tile('school', a.type || 'Assessment', n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `${n} days`, `${M.subject(a.subjectId)?.short || ''} ${a.title}`.trim(), 'Prepare', () => app.openItem(a))
+      : tile('school', 'Assessments', 'None soon', 'Nothing scheduled', 'Add', () => app.openItem(null, { kind: 'assessment' }));
+
+    const mins = S.focus.get(M.ymd(now))?.total || 0;
+    const focusTile = tile('focus', 'Focus', `${mins} min`, app.focus.running ? `Running · ${app.focus.fmt(app.focus.remaining())} left` : 'focused today', app.focus.running ? 'Open' : 'Start', () => {
+      if (!app.focus.running) app.focus.start();
+      app.go('focus');
+    });
+    fill(results, lessonTile, dueTile, testTile, focusTile);
+  }
+
+  // ---------- the day ----------
+
+  function renderDay(now) {
+    if (!S.timetable) { fill(lessons); fill(due); fill(nextA); fill(pack); grid.hidden = true; return; }
+    grid.hidden = false;
     const st = M.status(now);
     const day = M.isSchoolDay(now) && st.state !== 'after' ? M.startOfDay(now) : M.nextSchoolDay(now);
     const isToday = day && M.ymd(day) === M.ymd(now);
-    fill(todayHead,
-      h('h2.today-title.two-tone', null, h('span', { text: isToday ? 'Today. ' : day ? `${M.DAY_LONG[day.getDay()]}. ` : 'Today. ' }),
-        h('span', { text: day ? `${isToday ? M.fmtLong(day) : `${day.getDate()} ${M.MONTHS[day.getMonth()]}`} · Week ${M.weekLetter(day)}` : M.fmtLong(now) })));
 
     // lessons
     const m = M.minutesOf(now);
     const ls = day ? M.lessonsOn(day).filter((l) => l.subjectId) : [];
     fill(lessons,
-      h('div.panel-head', null, h('h3.panel-title', { text: 'Lessons' }), more('Timetable', () => app.go('timetable'))),
+      h('div.panel-head', null, h('h3.panel-title', { text: isToday ? 'Today’s lessons' : day ? `${M.DAY_LONG[day.getDay()]}’s lessons` : 'Lessons' }), more('Timetable', () => app.go('timetable'))),
       ls.length ? h('ul.rows', null, ...ls.map((l) => {
         const cur = isToday && m >= l.start && m < l.end;
         const past = isToday && m >= l.end;
@@ -191,13 +161,13 @@ export function createHome(app) {
         cur ? h('span.row-now', { text: 'Now' }) : null));
       })) : h('p.panel-empty', { text: 'No lessons.' }));
 
-    // due
+    // due soon
     const d1 = M.nextSchoolDay(M.today());
     const d2 = d1 ? M.nextSchoolDay(d1) : null;
     const horizon = M.ymd(d2 || M.addDays(M.today(), 2));
     const items = M.allItems().filter((i) => i.kind !== 'assessment' && i.due && i.due <= horizon && (!M.isDone(i) || (i.doneAt && Date.now() - i.doneAt < 4000))).sort(M.sortByDue);
     fill(due,
-      h('div.panel-head', null, h('h3.panel-title', { text: 'Due soon' }), more('Add', (e) => app.openQuickAdd(e.currentTarget))),
+      h('div.panel-head', null, h('h3.panel-title', { text: 'Due soon' }), more('Add', () => app.openQuickAdd())),
       items.length ? h('ul.rows', null, ...items.map((it) => {
         const s = M.subject(it.subjectId);
         const n = M.dueIn(it);
@@ -210,7 +180,7 @@ export function createHome(app) {
             h('span.row-title', null, h('span', { text: it.title })),
             h('span.row-sub', { text: [s?.short || s?.name, M.dueText(it)].filter(Boolean).join(' · ') })),
           !M.isDone(it) ? h(`span.row-when${n < 0 ? '.is-late' : n <= 1 ? '.is-soon' : ''}`, { text: n < 0 ? 'Late' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : M.DAY_SHORT[M.parseYMD(it.due).getDay()] }) : null));
-      })) : h('p.panel-empty', null, `Nothing due by ${M.relDay(horizon, { long: true })}. `, more('Add something', (e) => app.openQuickAdd(e.currentTarget))));
+      })) : h('p.panel-empty', null, `Nothing due by ${M.relDay(horizon, { long: true })}. `, more('Add something', () => app.openQuickAdd())));
 
     // next assessment
     const a = M.allItems().filter((i) => i.kind === 'assessment' && !M.isDone(i) && i.due && M.dueIn(i) >= 0).sort(M.sortByDue)[0];
@@ -249,17 +219,9 @@ export function createHome(app) {
           h('span.row-main', null, h('span.row-title', null, h('span', { text: e.label })), h('span.row-sub', { text: e.sub }))))))
           : h('p.panel-empty', { text: 'Nothing extra to bring. Add kit to a subject in School and it shows up here.' }));
     } else fill(pack);
-
-    // focus
-    const mins = S.focus.get(M.ymd(now))?.total || 0;
-    fill(focus,
-      h('div.panel-head', null, h('h3.panel-title', { text: 'Focus' })),
-      h('div.focus-row', null,
-        h('span.focus-big', null, h('span.next-num', { text: String(mins) }), h('span.next-unit', { text: 'min today' })),
-        btn('Start', () => app.openFocus(), { variant: 'neutral' })));
   }
 
-  // ---------- shelf ----------
+  // ---------- coming up ----------
 
   function renderShelf() {
     const end = M.ymd(M.addDays(M.today(), 14));
@@ -269,18 +231,19 @@ export function createHome(app) {
   }
 
   return {
-    id: 'home', el, update,
+    id: 'home', el: f.el, art: f.art, update,
     tick(now) {
       const st = M.status(now);
       if (`${st.state}:${st.current?.key || st.next?.key || ''}` !== liveKey) update();
       else live?.(now);
     },
     minute: update,
-    hero,
+    // Smart Care's Scan: one press, and the work starts.
+    orb: () => (S.timetable ? { label: 'Focus', aria: 'Start a focus session', onClick: () => { if (!app.focus.running) app.focus.start(); app.go('focus'); } } : null),
   };
 }
 
-/** A planner item as a Store card. Shared with the Planner. */
+/** A planner item as a card. Shared with the Planner. */
 export function itemCard(app, it) {
   const s = M.subject(it.subjectId);
   const n = M.dueIn(it);
@@ -299,4 +262,3 @@ export function itemCard(app, it) {
     onClick: (e) => app.openItem(it, null, e.currentTarget),
   });
 }
-

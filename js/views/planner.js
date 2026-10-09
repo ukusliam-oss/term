@@ -30,7 +30,7 @@ export function createPlanner(app) {
     selected: M.ymd(M.today()),
     sort: { key: 'due', dir: 1 },
   };
-  const f = pageFrame({ id: 'planner', title: 'Planner', sub: 'Tests, homework and tasks in one place.', alt: true });
+  const f = pageFrame({ id: 'planner', title: 'Planner', sub: 'Tests, homework and tasks in one place.' });
   const viewSeg = segment({ label: 'View', value: st.view, options: VIEWS.map(([value, label]) => ({ value, label })), onChange: (v) => setView(v) });
   f.setControls(viewSeg);
 
@@ -370,7 +370,8 @@ export function createPlanner(app) {
   }
 
   return {
-    id: 'planner', el: f.el,
+    id: 'planner', el: f.el, art: f.art,
+    orb: () => ({ label: 'Add', aria: 'Add to planner', onClick: () => app.openQuickAdd() }),
     update() { renderFilters(); renderParsed(); renderContent(); },
     minute() {},
     setOptions({ kind, view } = {}) {

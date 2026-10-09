@@ -136,7 +136,8 @@ export function createSchool(app) {
   }
 
   return {
-    id: 'school', el: f.el, update, minute() {},
+    id: 'school', el: f.el, art: f.art, update, minute() {},
+    orb: () => ({ label: 'Add', aria: 'Add an assessment', onClick: () => app.openItem(null, { kind: 'assessment' }) }),
     setOptions({ section } = {}) { if (section) requestAnimationFrame(() => document.getElementById(`school-${section}`)?.scrollIntoView({ block: 'start' })); },
   };
 }

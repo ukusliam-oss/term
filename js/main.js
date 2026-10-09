@@ -1,8 +1,9 @@
-// Term — the shell: apple.com's global nav (kept on screen, dark over a dark hero, light elsewhere),
-// a tab bar on phones so every page is one tap away, search and quick-add flyouts, the global
-// footer, keyboard shortcuts, the clock and the offline app shell.
+// Term — the shell, built the way CleanMyMac 5's window is: the module's aurora fills everything
+// (js/stage.js), a sidebar with no fill of its own lists the modules with their small renders, the
+// page opens with its glass object, and one round button at the bottom does the page's main thing.
+// On phones the sidebar becomes a tab bar with the round button sitting in its middle.
 
-import { h, icon, fill } from './ui/dom.js';
+import { h, icon, fill, svg, store as local } from './ui/dom.js';
 import { installSpringCSS } from './motion/spring.js';
 import { setReducedMotion } from './motion/animate.js';
 import * as db from './store.js';
@@ -11,33 +12,39 @@ import * as M from './model.js';
 import { initModals, closeTop, modalOpen, askConfirm } from './ui/sheet.js';
 import { initToasts, toast } from './ui/toast.js';
 import { initSearch, openSearch, openQuickAdd, closeSearch, flyoutOpen } from './ui/search.js';
-import { cvar } from './ui/kit.js';
+import { initSky, setModule, iconOf } from './stage.js';
+import { skin, loadSkin, importSkin } from './skin.js';
 import { createHome } from './views/home.js';
 import { createTimetable } from './views/timetable.js';
 import { createPlanner } from './views/planner.js';
 import { createSchool } from './views/school.js';
 import { createSettings } from './views/settings.js';
-import { createFocus } from './views/focus.js';
+import { createFocus, createFocusPage } from './views/focus.js';
 import { openItemEditor } from './views/editor.js';
 import { openLessonSheet, openDaySheet, openSubjectSheet, openEventEditor, pickSubject, openWeekPicker, openBellTimes } from './views/sheets.js';
 
-const TABS = [
-  { id: 'home', label: 'Home', icon: 'house', key: '1' },
-  { id: 'timetable', label: 'Timetable', icon: 'timetable', key: '2' },
-  { id: 'planner', label: 'Planner', icon: 'planner', key: '3' },
-  { id: 'school', label: 'School', icon: 'school', key: '4' },
-  { id: 'settings', label: 'Settings', icon: 'gear', key: '5' },
+const MODS = [
+  { id: 'home', label: 'Today', key: '1', tab: true, glyph: 'house' },
+  { id: 'timetable', label: 'Timetable', key: '2', tab: true, glyph: 'timetable' },
+  { id: 'planner', label: 'Planner', key: '3', tab: true, glyph: 'planner' },
+  { id: 'school', label: 'School', key: '4', tab: true, glyph: 'school' },
+  { id: 'focus', label: 'Focus', key: '5', glyph: 'timer' },
+  { id: 'settings', label: 'Settings', key: '6', bottom: true, glyph: 'gear' },
 ];
+const modOf = (id) => MODS.find((m) => m.id === id);
 
 installSpringCSS();
+setReducedMotion(!!local('term.settings.reduceMotion'));
 const root = document.getElementById('app');
 root.removeAttribute('aria-busy');
 fill(root);
 
+const focus = createFocus();
 const app = {
   current: null,
   views: {},
   dirty: new Set(),
+  focus,
   go,
   toast,
   refresh(id) { if (id === app.current) app.views[id]?.update(); else app.dirty.add(id); },
@@ -49,62 +56,79 @@ const app = {
   pickSubject: (cur, origin, sub) => pickSubject(app, cur, origin, sub),
   openWeekPicker: () => openWeekPicker(app),
   openBellTimes: () => openBellTimes(app),
-  openFocus: (sid) => focus.open(sid),
+  openFocus: (subjectId) => go('focus', { subjectId }),
   openPalette: () => toggleSearch(),
   openQuickAdd: () => openQuickAdd(app),
   importFile,
+  paintOrb: () => paintOrb(),
 };
 
-// ---------- global nav ----------
+// ---------- the window ----------
 
-const focus = createFocus(app);
-const curtain = h('div.gn-curtain');
-const navLinks = TABS.map((t) => h('button.gn-link', { type: 'button', onclick: () => go(t.id) }, t.label));
-const timerItem = h('li.gn-item.gn-item-timer', { hidden: true }, focus.pill);
-const gn = h('header.gn', null, h('nav.gn-content', { 'aria-label': 'Global' }, h('ul.gn-list', null,
-  h('li.gn-item.gn-item-brand', null, h('button.gn-link.gn-brand', { type: 'button', 'aria-label': 'Term home', onclick: () => go('home') }, h('span.gn-mark', { 'aria-hidden': 'true' }), 'Term')),
-  ...navLinks.map((b) => h('li.gn-item.gn-item-page', null, b)),
-  timerItem,
-  h('li.gn-item', null, h('button.gn-link.gn-icon', { type: 'button', 'aria-label': 'Search', title: 'Search (⌘K)', onclick: () => toggleSearch() }, icon('search', 16))),
-  h('li.gn-item', null, h('button.gn-link.gn-icon', { type: 'button', 'aria-label': 'Add', title: 'Add (N)', onclick: () => openQuickAdd(app) }, icon('plus', 17))))));
+const skyCanvas = h('canvas.sky', { 'aria-hidden': 'true' });
+document.body.prepend(skyCanvas);
+initSky(skyCanvas);
 
-const tabButtons = TABS.map((t) => h('button.tab', { type: 'button', onclick: () => go(t.id) }, icon(t.icon, 24), h('span', { text: t.label })));
-const tabbar = h('nav.tabbar', { 'aria-label': 'Pages' }, ...tabButtons);
-
-function toggleSearch() {
-  openSearch({
-    quick: [
-      { title: 'This week’s timetable', run: () => go('timetable') },
-      { title: 'Upcoming assessments', run: () => go('planner', { kind: 'assessment' }) },
-      { title: 'Homework due soon', run: () => go('planner', { kind: 'homework' }) },
-      { title: 'Start focus', run: () => app.openFocus() },
-      { title: 'Change this week’s A/B letter', run: () => app.openWeekPicker() },
-    ],
-    sources: searchSources,
-  });
+// Module icons: CleanMyMac's sidebar renders from the skin (coloured when current, silver
+// otherwise, as in its sidebar), or a line glyph without one.
+const iconSlots = [];
+function moduleIcon(m) {
+  const img = h('img.sb-img', { alt: '', 'aria-hidden': 'true' });
+  const el = h('span.sb-icon', null, img, icon(m.glyph, 22, 'sb-glyph'));
+  iconSlots.push({ id: m.id, img });
+  return el;
+}
+function paintIcons() {
+  document.documentElement.classList.toggle('has-skin', skin.has);
+  for (const { id, img } of iconSlots) {
+    const src = iconOf(id, id === app.current ? 'side-on' : 'side-off');
+    if (img.getAttribute('src') !== src) img.src = src;
+  }
 }
 
-// ---------- footer ----------
+const sbWeek = h('button.sb-week', { type: 'button', title: 'Change the week letter', onclick: () => app.openWeekPicker() });
+const sbItems = {};
+const sbBadges = {};
+const sbItem = (m) => {
+  const badge = h('span.sb-badge');
+  sbBadges[m.id] = badge;
+  const b = h('button.sb-item', { type: 'button', title: `${m.label} (${m.key})`, onclick: () => go(m.id) }, moduleIcon(m), h('span', { text: m.label }), badge);
+  sbItems[m.id] = b;
+  return b;
+};
+const sbSync = h('p.sb-sync');
+const sidebar = h('aside.sidebar', { 'aria-label': 'Modules' },
+  h('div.sb-brand', null, h('span.sb-mark', { 'aria-hidden': 'true' }), 'Term', sbWeek),
+  h('button.sb-search', { type: 'button', onclick: () => toggleSearch() }, icon('search', 15), h('span', { text: 'Search' }), h('kbd', { text: '⌘K' })),
+  h('nav.sb-list', null, ...MODS.filter((m) => !m.bottom).map(sbItem)),
+  h('div.sb-bottom', null, sbSync, ...MODS.filter((m) => m.bottom).map(sbItem)));
 
-const crumb = h('span');
-const syncEl = h('span.gf-sync');
-const owner = h('span');
-const dir = (title, links) => h('div.gf-col', null, h('p.gf-col-title', { text: title }), ...links.map(([l, fn]) => h('button', { type: 'button', onclick: fn, text: l })));
-const footer = h('footer.gf', null, h('div.gf-content', null,
-  h('div.gf-notes', null,
-    h('p', { text: 'Week letters follow the A/B cycle set in Settings. A week that is entirely a holiday pauses the cycle when that option is on.' }),
-    h('p', { text: 'Signed in, your planner syncs between devices and keeps working offline. Add Term to your Home Screen from the Share menu to open it like an app.' })),
-  h('nav.gf-crumbs', { 'aria-label': 'Breadcrumbs' }, h('button', { type: 'button', onclick: () => go('home'), text: 'Term' }), icon('chev', 10), crumb),
-  h('nav.gf-directory', { 'aria-label': 'Directory' },
-    dir('Home', [['Today', () => go('home')], ['Focus', () => app.openFocus()]]),
-    dir('Timetable', [['This week', () => go('timetable')], ['Edit timetable', () => go('timetable', { edit: true })], ['Bell times', () => app.openBellTimes()]]),
-    dir('Planner', [['List', () => go('planner', { view: 'list' })], ['Board', () => go('planner', { view: 'board' })], ['Month', () => go('planner', { view: 'calendar' })], ['Table', () => go('planner', { view: 'table' })]]),
-    dir('School', [['Subjects', () => go('school')], ['Results', () => go('school', { section: 'results' })], ['Term dates', () => go('school', { section: 'term' })]]),
-    dir('Account', [['Sign in and sync', () => go('settings', { section: 'account' })], ['This week’s letter', () => app.openWeekPicker()], ['Backups', () => go('settings', { section: 'data' })]])),
-  h('div.gf-mini', null, h('div.gf-legal', null, owner), syncEl)));
+const tabButtons = {};
+const tabs = MODS.filter((m) => m.tab);
+const tabbar = h('nav.tabbar', { 'aria-label': 'Modules' },
+  ...tabs.slice(0, 2).map(tabBtn), h('span.tab.is-gap', { 'aria-hidden': 'true' }), ...tabs.slice(2).map(tabBtn));
+function tabBtn(m) {
+  const b = h('button.tab', { type: 'button', onclick: () => go(m.id) }, moduleIcon(m), h('span', { text: m.label }));
+  tabButtons[m.id] = b;
+  return b;
+}
+const phoneActions = h('div.phone-actions', null,
+  h('button.round-btn', { type: 'button', 'aria-label': 'Search', onclick: () => toggleSearch() }, icon('search', 18)),
+  h('button.round-btn', { type: 'button', 'aria-label': 'Settings', onclick: () => go('settings') }, icon('gear', 18)));
 
-const stage = h('main#stage.stage');
-root.append(gn, curtain, stage, footer, tabbar);
+// the round button
+const R = 52;
+const prog = svg('circle', { class: 'orb-prog', cx: 50, cy: 50, r: R, 'stroke-dasharray': String(2 * Math.PI * R), 'stroke-dashoffset': String(2 * Math.PI * R) });
+const ring = svg('svg', { class: 'orb-ring', viewBox: '-4 -4 108 108', 'aria-hidden': 'true' }, svg('circle', { class: 'orb-track', cx: 50, cy: 50, r: R }), prog);
+const orbLabel = h('span.orb-label');
+const orb = h('button.orb', { type: 'button', hidden: true }, h('span.orb-halo', { 'aria-hidden': 'true' }), h('span.orb-core', { 'aria-hidden': 'true' }), ring, orbLabel);
+let orbAction = null;
+orb.addEventListener('click', () => orbAction?.());
+
+const curtain = h('div.gn-curtain');
+const stage = h('main.main', { id: 'stage' });
+const dock = h('div.orb-dock', { 'aria-hidden': 'true' });
+root.append(sidebar, stage, tabbar, phoneActions, orb, dock, curtain);
 initSearch(root, curtain);
 initModals(root);
 initToasts(root);
@@ -114,13 +138,49 @@ app.views = {
   timetable: createTimetable(app),
   planner: createPlanner(app),
   school: createSchool(app),
+  focus: createFocusPage(app, focus),
   settings: createSettings(app),
 };
 for (const v of Object.values(app.views)) stage.append(v.el);
 
-// The nav goes dark while it sits over Home's dark hero, as apple.com's does over dark pages.
-const heroWatch = new IntersectionObserver(([e]) => document.body.classList.toggle('nav-dark', app.current === 'home' && e.isIntersecting), { rootMargin: '-44px 0px 0px 0px' });
-heroWatch.observe(app.views.home.hero);
+function toggleSearch() {
+  openSearch({
+    quick: [
+      { title: 'This week’s timetable', run: () => go('timetable') },
+      { title: 'Upcoming assessments', run: () => go('planner', { kind: 'assessment' }) },
+      { title: 'Homework due soon', run: () => go('planner', { kind: 'homework' }) },
+      { title: 'Start focus', run: () => { go('focus'); focus.start(); } },
+      { title: 'Change this week’s A/B letter', run: () => app.openWeekPicker() },
+    ],
+    sources: searchSources,
+  });
+}
+
+// ---------- the round button ----------
+
+function paintOrb() {
+  const view = app.views[app.current];
+  let spec = view?.orb?.() || null;
+  // A running session takes over the button on Today, as the scan ring does in CleanMyMac.
+  if (focus.running && app.current === 'home') spec = { label: focus.state.status === 'paused' ? 'Paused' : 'Focus', time: focus.fmt(focus.remaining()), progress: focus.progress(), onClick: () => go('focus') };
+  orb.hidden = !spec;
+  if (!spec) { orbAction = null; return; }
+  orbAction = spec.onClick;
+  orb.setAttribute('aria-label', spec.aria || spec.label);
+  const time = spec.time || (spec.progress != null && app.current === 'focus' ? focus.fmt(focus.remaining()) : null);
+  const key = `${spec.label}|${time || ''}`;
+  if (orbLabel.dataset.key !== key) {
+    orbLabel.dataset.key = key;
+    fill(orbLabel, time ? h('span.num', { text: time }) : null, time ? h('small', { text: spec.label }) : spec.label);
+  }
+  orb.classList.toggle('has-progress', spec.progress != null);
+  if (spec.progress != null) prog.setAttribute('stroke-dashoffset', String(2 * Math.PI * R * (1 - Math.min(1, Math.max(0, spec.progress)))));
+}
+focus.subscribe((structural) => {
+  paintOrb();
+  paintBadges();
+  if (structural) app.views.focus.art.scan(focus.state.status === 'running');
+});
 
 // ---------- routing ----------
 
@@ -129,8 +189,10 @@ function go(id, opts = {}) {
   closeSearch(true);
   const next = app.views[id];
   next.setOptions?.(opts);
+  const m = modOf(id);
   if (id === app.current) {
     next.update();
+    paintOrb();
     if (!opts.section) window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
@@ -139,18 +201,19 @@ function go(id, opts = {}) {
   app.current = id;
   try { history.replaceState(null, '', `#${id}`); } catch { /* ignore */ }
   next.el.hidden = false;
+  setModule(id);
   next.update();
   app.dirty.delete(id);
   next.el.classList.remove('is-entering');
   void next.el.offsetWidth;
   next.el.classList.add('is-entering');
   if (!opts.section) window.scrollTo(0, 0);
-  document.body.classList.toggle('nav-dark', id === 'home' && window.scrollY < app.views.home.hero.offsetHeight - 44);
-  const tab = TABS.find((t) => t.id === id);
-  navLinks.forEach((b, i) => (TABS[i].id === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
-  tabButtons.forEach((b, i) => (TABS[i].id === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
-  crumb.textContent = tab.label;
-  document.title = id === 'home' ? 'Term' : `${tab.label} · Term`;
+  next.art?.intro();
+  paintIcons();
+  for (const [k, b] of Object.entries(sbItems)) k === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current');
+  for (const [k, b] of Object.entries(tabButtons)) k === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current');
+  document.title = id === 'home' ? 'Term' : `${m.label} · Term`;
+  paintOrb();
 }
 window.addEventListener('hashchange', () => {
   const id = location.hash.slice(1);
@@ -167,9 +230,9 @@ function searchSources() {
   const subjects = M.subjects().map((s) => ({ title: s.name, sub: [s.room, `${M.lessonsPerCycle(s.id)} lessons a fortnight`].filter(Boolean).join(' · '), keywords: `${s.short} ${s.teacher || ''}`, color: s.color, run: () => app.openSubject(s.id) }));
   const events = [...S.events.values()].map((e) => ({ title: e.title, sub: M.fmtShort(M.parseYMD(e.start)), run: () => app.openEvent(e) }));
   const pages = [
-    ...TABS.map((t) => ({ title: t.label, sub: 'Page', run: () => go(t.id) })),
+    ...MODS.map((t) => ({ title: t.label, sub: 'Page', run: () => go(t.id) })),
     { title: 'Add to planner', sub: 'Action', keywords: 'new homework test task assessment', run: () => openQuickAdd(app) },
-    { title: 'Start focus', sub: 'Action', keywords: 'timer pomodoro study', run: () => app.openFocus() },
+    { title: 'Start focus', sub: 'Action', keywords: 'timer pomodoro study', run: () => { go('focus'); focus.start(); } },
     { title: 'Edit timetable', sub: 'Action', keywords: 'lessons periods', run: () => go('timetable', { edit: true }) },
     { title: 'Add a term date', sub: 'Action', keywords: 'holiday half term exams event', run: () => app.openEvent(null) },
     { title: 'Bell times', sub: 'Action', keywords: 'periods start end', run: () => app.openBellTimes() },
@@ -199,35 +262,39 @@ window.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); toggleSearch(); return; }
   if (e.key === 'Escape') { if (modalOpen()) closeTop(); else closeSearch(); return; }
   if (typing || e.metaKey || e.ctrlKey || e.altKey || modalOpen() || flyoutOpen()) return;
-  const tab = TABS.find((t) => t.key === e.key);
-  if (tab) { go(tab.id); return; }
+  const m = MODS.find((t) => t.key === e.key);
+  if (m) { go(m.id); return; }
   if (e.key === '/') { e.preventDefault(); toggleSearch(); }
   else if (e.key === 'n') { e.preventDefault(); openQuickAdd(app); }
-  else if (e.key === 'f') { e.preventDefault(); app.openFocus(); }
+  else if (e.key === 'f') { e.preventDefault(); go('focus'); }
   else app.views[app.current]?.onKey?.(e);
 });
 
 // ---------- data ----------
 
 function applySettings() {
-  const r = document.documentElement.style;
-  const a = S.settings.accent || 'blue';
-  if (a === 'blue') ['--blue', '--blue-hover', '--blue-active', '--link'].forEach((k) => r.removeProperty(k));
-  else {
-    const c = cvar(a);
-    r.setProperty('--blue', c);
-    r.setProperty('--blue-hover', `color-mix(in srgb, ${c} 92%, white)`);
-    r.setProperty('--blue-active', `color-mix(in srgb, ${c} 88%, black)`);
-    r.setProperty('--link', `color-mix(in oklab, ${c}, black 18%)`);
-  }
   setReducedMotion(S.settings.reduceMotion);
+  local('term.settings.reduceMotion', !!S.settings.reduceMotion);
+}
+function paintBadges() {
+  const horizon = M.ymd(M.addDays(M.today(), 1));
+  const due = M.allItems().filter((i) => !M.isDone(i) && i.due && i.due <= horizon).length;
+  sbBadges.planner.textContent = due ? String(due) : '';
+  const fb = sbBadges.focus;
+  fb.classList.toggle('is-timer', focus.running);
+  fb.textContent = focus.running ? focus.fmt(focus.remaining()) : '';
+  // the week the day is about: today's, or the next school day's once today is done
+  const now = new Date();
+  const day = M.isSchoolDay(now) && M.status(now).state !== 'after' ? M.today() : M.nextSchoolDay(now) || M.today();
+  sbWeek.textContent = S.timetable ? `Week ${M.weekLetter(day)}` : '';
+  sbWeek.hidden = !S.timetable;
 }
 function paintChrome() {
   const s = db.syncLabel();
-  syncEl.className = `gf-sync ${s.tone}`;
-  fill(syncEl, h('span.gf-sync-dot'), ` ${s.text}`);
-  owner.textContent = [S.settings.name ? `Term for ${S.settings.name}` : 'Term', S.settings.school, S.auth.user?.email].filter(Boolean).join(' · ');
-  focus.paintPill();
+  sbSync.className = `sb-sync ${s.tone}`;
+  fill(sbSync, h('span.sb-sync-dot'), h('span', { text: s.text }));
+  paintBadges();
+  paintOrb();
 }
 db.subscribe(() => {
   applySettings();
@@ -251,8 +318,29 @@ setInterval(() => {
   const day = M.ymd(now);
   if (day !== lastDay) { lastDay = day; for (const v of Object.values(app.views)) v.update(); }
   else app.views[app.current]?.minute?.(now);
+  paintBadges();
 }, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) app.views[app.current]?.update(); });
+
+// ---------- the personal skin ----------
+
+skin.onChange(() => {
+  paintIcons();
+  for (const v of Object.values(app.views)) v.art?.paint();
+  app.views[app.current]?.art?.intro();
+  app.views[app.current]?.update();
+});
+app.importSkin = async (file) => {
+  try { const n = await importSkin(file); toast(`Skin installed — ${n} files.`); } catch (e) { toast(e.message || 'Couldn’t read that skin file.', { tone: 'error' }); }
+};
+// Dropping the skin file anywhere on the window installs it.
+window.addEventListener('dragover', (e) => { if ([...(e.dataTransfer?.items || [])].some((i) => i.kind === 'file')) e.preventDefault(); });
+window.addEventListener('drop', (e) => {
+  const f = [...(e.dataTransfer?.files || [])].find((x) => /\.zip$/i.test(x.name));
+  if (!f) return;
+  e.preventDefault();
+  app.importSkin(f);
+});
 
 // ---------- offline app shell ----------
 
@@ -271,7 +359,15 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 try { history.scrollRestoration = 'manual'; } catch { /* ignore */ }
 
 applySettings();
-paintChrome();
 const start = location.hash.slice(1);
 go(app.views[start] ? start : 'home');
+paintChrome();
+loadSkin().then((has) => {
+  // On the local dev server, ?devskin installs private/term-skin.zip without the file picker.
+  if (has || !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || !new URLSearchParams(location.search).has('devskin')) return;
+  fetch('private/term-skin.zip').then((r) => (r.ok ? r.blob() : null)).then((b) => b && app.importSkin(new File([b], 'term-skin.zip'))).catch(() => {});
+});
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('devdata')) {
+  setTimeout(() => { if (!S.timetable) fetch('private/term-timetable-import.json').then((r) => (r.ok ? r.json() : null)).then((o) => o && db.restore(o)).catch(() => {}); }, 800);
+}
 db.init();

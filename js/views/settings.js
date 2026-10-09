@@ -6,16 +6,19 @@ import { S } from '../store.js';
 import * as db from '../store.js';
 import * as M from '../model.js';
 import { pageFrame } from './frame.js';
-import { field, tiles, checkbox, swatches, more, kbd, btn } from '../ui/kit.js';
+import { field, tiles, checkbox, more, kbd, btn } from '../ui/kit.js';
+import { skin, removeSkin } from '../skin.js';
 import { askConfirm } from '../ui/sheet.js';
 import { toast } from '../ui/toast.js';
 
 export function createSettings(app) {
-  const f = pageFrame({ id: 'settings', title: 'Settings' });
+  const f = pageFrame({ id: 'settings', title: 'Settings', sub: 'Account, sync, your timetable and how Term looks.' });
+  const skinInput = h('input', { type: 'file', accept: '.zip,application/zip', hidden: true });
+  skinInput.addEventListener('change', () => { const file = skinInput.files?.[0]; skinInput.value = ''; if (file) app.importSkin(file); });
   const root = h('div.wrap.settings');
   const fileInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
   fileInput.addEventListener('change', () => importFile());
-  f.body.append(h('div.section.section-tight', null, root), fileInput);
+  f.body.append(h('div.section.section-tight', null, root), fileInput, skinInput);
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   void jump;
 
@@ -66,9 +69,11 @@ export function createSettings(app) {
           more('Edit the timetable', () => app.go('timetable', { edit: true })),
           more('Term dates', () => app.go('school', { section: 'term' })))),
 
-      section('set-appearance', 'Appearance', 'The highlight colour tints buttons and links. Reduce motion swaps movement for simple fades, and also follows your device setting.',
-        h('p.panel-label', { text: 'Highlight colour' }),
-        swatches(S.settings.accent, (c) => db.saveSettings({ accent: c }), 'Highlight colour'),
+      section('set-appearance', 'Appearance', 'Term wears your CleanMyMac skin: its renders, icons and colours. The skin file is made on your Mac from your own copy of CleanMyMac and stays on this device. Reduce motion shows the renders still.',
+        h('p.panel-label', { text: skin.has ? 'CleanMyMac skin installed' : 'No skin on this device yet' }),
+        h('div.panel-links', null,
+          more(skin.has ? 'Replace the skin file' : 'Install the skin file (term-skin.zip)', () => skinInput.click()),
+          skin.has ? more('Remove the skin', async () => { await removeSkin(); toast('Skin removed.'); }, 'more-danger') : null),
         h('div.panel-gap'),
         checkbox({ id: 'set-motion', label: 'Reduce motion', checked: S.settings.reduceMotion, onChange: (v) => db.saveSettings({ reduceMotion: v }) })),
 
@@ -83,7 +88,7 @@ export function createSettings(app) {
 
       isPhone() ? null : section('set-keys', 'Keyboard', 'Shortcuts work anywhere outside a text field.',
         h('div.hlist.hlist-flush', null, ...[
-          ['Search', '⌘ K'], ['New item', 'N'], ['Home, Timetable, Planner, School, Settings', '1 – 5'],
+          ['Search', '⌘ K'], ['New item', 'N'], ['Today, Timetable, Planner, School, Focus, Settings', '1 – 6'],
           ['Previous or next week', '← →'], ['Jump to today (Timetable)', 'T'], ['Edit the timetable', 'E'], ['Quick add (Planner)', 'A'], ['Focus timer', 'F'], ['Close', 'esc'],
         ].map(([l, k]) => h('div.hrow', null, h('span.hrow-main', null, h('span.hrow-title.t-regular', { text: l })), kbd(k))))),
     ];
@@ -175,7 +180,7 @@ export function createSettings(app) {
   }
 
   return {
-    id: 'settings', el: f.el, update, minute() {},
+    id: 'settings', el: f.el, art: f.art, update, minute() {},
     setOptions({ section } = {}) { if (section) setTimeout(() => document.getElementById(`set-${section}`)?.scrollIntoView({ block: 'start' }), 60); },
   };
 }

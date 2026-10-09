@@ -21,7 +21,7 @@ export function createTimetable(app) {
     day: defaultDay(),
     edit: false,
   };
-  const f = pageFrame({ id: 'timetable', title: 'Timetable' });
+  const f = pageFrame({ id: 'timetable', title: 'Timetable', sub: 'Your A/B fortnight, lesson by lesson.' });
   const modeSeg = segment({ label: 'Layout', value: st.mode, options: [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }], onChange: (v) => setMode(v) });
   const editBtn = btn('Edit', () => setEdit(!st.edit), { variant: 'secondary-neutral' });
   f.setControls(modeSeg, btn('Today', () => goToday(), { variant: 'neutral' }), editBtn);
@@ -278,8 +278,15 @@ export function createTimetable(app) {
   }
 
   return {
-    id: 'timetable', el: f.el,
+    id: 'timetable', el: f.el, art: f.art,
     update: () => render(0),
+    // The round button adds homework for the lesson that's on, or the next one.
+    orb: () => (S.timetable ? { label: 'Add', aria: 'Add homework', onClick: () => {
+      const st0 = M.status(new Date());
+      const l = st0.current || st0.next;
+      const due = l ? M.nextLesson(new Date(), l.subjectId) : null;
+      app.openItem(null, { kind: 'homework', subjectId: l?.subjectId || null, due: due?.date, at: due ? M.fromMin(due.start) : null });
+    } } : null),
     minute: () => render(0),
     setOptions(o) {
       if (o.edit) setEdit(true);
